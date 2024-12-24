@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ESNext", // 컴파일 결과 생성되는 자바스크립트 파일의 버전 설정 (ES5, ESNext)
+    "module": "ESNext", // 변환된 자바스크립트의 모듈 시스템 설정 (CommonJS, ESNext)
+    "outDir": "dist", // 컴파일 결과 생성된 자바스크립트 파일들이 있을 곳
+    "strict": true, // 엄격한 타입 검사
+    "moduleDetection": "force", // 타입스크립트가 각각의 파일을 어떤 모듈로 감지할 것인지를 설정
+    "skipLibCheck": true // 타입 정의 파일(.d.ts)의 타입 검사를 생략
+  },
+  "include": ["src"] // 컴파일할 범위 설정
+}
