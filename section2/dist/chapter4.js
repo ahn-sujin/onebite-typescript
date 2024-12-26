@@ -1,4 +1,3 @@
-// 타입 별칭
 let user1 = {
     id: 1,
     name: "안수진",
@@ -12,5 +11,15 @@ let user2 = {
     nickname: "ksj",
     birth: "1987.08.29",
     location: "서울",
+};
+let contryCodes = {
+    Korea: "ko",
+    UnitedState: "us",
+    UnitedKingdom: "uk",
+};
+let contryNumberCodes = {
+    Korea: 410,
+    UnitedState: 840,
+    UnitedKingdom: 826,
 };
 export {};
