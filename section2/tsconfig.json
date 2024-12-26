@@ -3,7 +3,8 @@
     "target": "ESNext",
     "module": "ESNext",
     "outDir": "dist",
-    "strict": true,
+    "strict": true, // strictNullChecks 의 상위 버전
+    "strictNullChecks": false, // 엄격한 검사 여부
     "moduleDetection": "force",
     "skipLibCheck": true
   },
