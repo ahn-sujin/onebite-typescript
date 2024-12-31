@@ -10,6 +10,8 @@
 6. [Enum 타입](#Enum-타입)
 7. [Any와 Unknown 타입](#Any와-Unknown-타입)
 8. [Void 타입과 Never 타입](#Void-타입과-Never-타입)
+9. [타입은 집합이다](#타입은-집합이다)
+10. [타입 계층도와 기본 타입](#타입-계층도와-기본-타입)
 
 <br />
 
@@ -36,8 +38,8 @@
 - 타입이 지정되었을 때, 임시로 null이 필요한 경우`tsconfig.json`파일에서 설정해줄 수 있다.
     
     ```json
-    strict: true
-    strictNullChecks : false
+     strict: true
+     strictNullChecks : false
     ```
     
     - `strictNullChecks` 가 false 면 임시로 null 값을 넣을 수 있다.
@@ -413,3 +415,97 @@ function func4() : never {
 - 변수의 타입으로 never을 지정하면 그 어떤 값도 넣을 수 없다.
     - undefinded 도 안되고, null 도 안됨, any도 안됨
     - `strictNullChecks:false` 설정해줘도 안됨
+
+<br />
+
+## 타입은 집합이다
+<img width="730" alt="스크린샷 2024-08-20 오후 11 11 06" src="https://github.com/user-attachments/assets/a65cfc60-1d37-4c9f-b000-d65eeb4fb04b" />
+<img width="730" alt="스크린샷 2024-08-20 오후 11 15 28" src="https://github.com/user-attachments/assets/b92d219c-ab74-4714-9d36-87766aa22bc5" />
+
+- 타입은 동일한 속성과 특징들을 갖는 여러 개의 값들을 모아놓은 집합이다.
+- 타입들의 관계는 부모-자식 관계이다.
+- 타입간의 업 캐스팅은 가능하지만, 다운 캐스팅은 불가능하다.
+
+
+<br />
+
+
+## 타입 계층도와 기본 타입
+### Unkown 타입
+- 전체 진합
+- **모든 타입의 슈퍼타입**
+  
+```typescript
+function unknownExam() {
+  let a: unknown = 1;
+  let b: unknown = "hello";
+  let c: unknown = true;
+  let d: unknown = null;
+  let e: unknown = undefined;
+
+  let unkownVar: unknown;
+
+  // Error : 다운 캐스팅 불가
+  //   let num: number = unkownVar;
+  //   let str: string = unkownVar;
+  //   let bool: boolean = unkownVar;
+}
+
+```
+
+### Never 타입
+- 공집합, 아무런 값도 저장할 수 없다.
+- **모든 타입의 서브타입**
+
+```typescript
+function neverExam() {
+  function neverFunc(): never {
+    while (true) {}
+  }
+
+  let num: number = neverFunc();
+  let str: string = neverFunc();
+  let bool: boolean = neverFunc();
+
+  // Error : 다운 캐스팅 불가능
+  //   let num: never = 10;
+  //   let str: never = "hello";
+  //   let bool: never = true;
+}
+```
+
+### Void 타입
+- 반환값이 없는 타입
+- **중간 타입 , undefined 타입의 슈퍼타입**
+
+```typescript
+function voidExam() {
+  function voidFunc(): void {
+    console.log("hello");
+    // return undefined;
+  }
+
+  let voidVar: void = undefined;
+}
+```
+
+### any 타입
+- 치트키 타입, 타입 계층도를 무시한다.
+- **모든 타입의 슈퍼 타입이기도 하고, 모든 타입의 서브 타입이기도 하다. (never 제외)**
+
+```typescript
+function anyExam() {
+  let unknownVar: unknown;
+  let anyVar: any;
+  let undefinedVar: undefined;
+  let neverVar: never;
+
+  // 다운 캐스팅이지만 허용된다.
+  anyVar = unknownVar;
+  undefinedVar = anyVar;
+
+  // 예외) never 타입에는 어떤 타입도 다운 캐스팅 할 수 없다!
+  // neverVar = anyVar;
+}
+```
+ 
