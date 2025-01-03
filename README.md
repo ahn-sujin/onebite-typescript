@@ -12,6 +12,12 @@
 8. [Void 타입과 Never 타입](#Void-타입과-Never-타입)
 9. [타입은 집합이다](#타입은-집합이다)
 10. [타입 계층도와 기본 타입](#타입-계층도와-기본-타입)
+11. [객체 타입의 호환성](#객체-타입의-호환성)
+12. [대수 타입](#대수-타입)
+13. [타입 추론](#타입-추론)
+14. [타입 단언](#타입-단언)
+15. [타입 좁히기](#타입-좁히기)
+16. [서로소 유니온 타입](#서로소-유니온-타입)
 
 <br />
 
@@ -508,4 +514,630 @@ function anyExam() {
   // neverVar = anyVar;
 }
 ```
+
+<br />
+
+## 객체 타입의 호환성
+> 어떤 객체 타입을 다른 객체 타입으로 취급해도 괜찮은가?
+
+```tsx
+type Animal = { 
+	name: string;
+	color: string;
+}
+
+type Dog = {
+	name: string;
+	color: string;
+	breed: string;
+}
+
+let animal: Animal = {
+	name: "기린",
+	color: "yellow"
+}
+
+let dog: Dog = {
+	name: "돌돌이",
+	color: "brown",
+	breed: "진도"
+}
+
+animal = dog;  // 가능
+
+dog = animal; // 불가능
+```
+
+- 객체도 슈퍼타입, 서브타입을 가진다
+    - **프로퍼티를 기준**으로 그 관계가 결정된다.
+- 구조적 타입 시스템
+    - Animal 타입은 2개의 프로퍼티 (name, color)
+    - Dog 타입은 3개의 프로퍼티 (name, color, breed)
+- **조건이 더 적은 타입이 슈퍼타입**이 된다.
+
+### 초과 프로퍼티 검사
+
+```tsx
+type Book = {
+	name: string
+	price: number
+}
+
+type ProgrammingBook = {
+	name: string
+	price: number
+	skill: string
+}
+
+let book:Book;
+let programmingBook : ProgrammingBook = {
+	name: "한 입 크기로 잘라먹는 리액트",
+	price : 33000,
+	skill : "리액트"
+}
+
+book = programmingBook
+
+let book2 : Book = {
+	name: "한 입 크기로 잘라먹는 리액트",
+	price : 33000,
+	skill : "리액트"
+}
+```
+
+- 변수를 초기화할 때  초기화하는 값으로 객체 리터럴을 사용할 때 발동하는게 초과 프로퍼티 검사이다.
+    - 타입스크립트의 특수한 기능으로 정의된 프로퍼티 외의 다른 초과된 프로퍼티를 갖는 객체를 변수에 할당할 수 없도록 막는 기능이다.
+- 객체 타입에 정의된 프로퍼티만 적어야한다.
+- 매개변수를 전달할 때도 동일하게 적용된다.
+    
+    ```tsx
+    function func(book: Book) {}
+    
+    func({ 
+      name: "한 입 크기로 잘라먹는 리액트",
+      price: 33000,
+      skill: "reactjs", // 오류 발생
+    });
+    ```
+    
+    - 객체 리터럴로 전달하면 초과 프로퍼티 검사가 발동한다.
+    - 피하려면 정의한 변수에 저장했다가 인수로 변수로 전달해야한다.
+
+<br />
+
+## 대수 타입
+
+- **여러개의 타입을 합성해서 새롭게 만들어낸 타입**이다.
+- 합집합 타입과 교집합 타입이 존대한다.
+
+### 합집합 - Union 타입
+
+```tsx
+// 1. string-number union 타입
+let a : string | number;
+a = 1;
+a = "hello";
+
+// 2. 배열에서 Union 타입
+let arr:(number | string | boolean)[] = [1,"hello", true];
+
+// 3. 객체에서 Union 타입
+type Dog = {
+	name : string;
+	color : string;
+}
+
+type Person = {
+	name : string;
+	language : string;  
+}
+
+type Union = Dog | Person;
+```
+
+- 추가할 수 있는 유니온 타입은 무한대이다.
+- 한쪽에 포함되거나 , 둘다 포함되어야한다. 한쪽에만 포함된다면 그것은 Union 타입이 될 수 없다.
+
+### 교집합 - Intersection 타입
+
+```tsx
+let variable : number & string; // nerver 타입 (공집합)
+
+type Dog = {
+	name : string;
+	color : string;
+}
+
+type Person = {
+	name : string;
+	language : string;  
+}
+
+type Intersection = Dog & Person;
+
+let intersection1 : Intersection = {
+	name: "",
+	color: "",
+	language: "" // 하나라도 빠지면 intersection 타입에 포함될 수 없다.
+}
+```
+
+- 기본 타입들로 Intersection 타입을 만들긴 어렵다. 보통 객체 타입에 많이 사용한다.
+- Intersection 타입은 모든 프로퍼티를 갖고 있어야한다.
+
+<br />
+
+## 타입 추론
+
+- 점진적 타입 시스템
+    - 타입을 지정하지 않아도 변수를 선언하고 초기값을 넣어주면 **초기값을 기준으로 타입을 지정**한다.
+- 모든 상황에 타입을 추론해주진 않는다
+    - ex) 함수의 매개변수 같은 경우는 타입추론이 되지 않는다.
+- 타입 넓히기
+    - 상수(const)로 선언된 변수가 아니라면 범용적으로 타입이 선언될 수 있도록 추론해주는 것
+
+<br/>
+
+```tsx
+let a = 10;
+let b = "hello";
+let c = {
+	id : 1,
+	name : "asj",
+	profile : {
+		nickname : "mini"
+	},
+	urls : ["https://...."]
+}
+
+let {id, name, profile} = c;
+
+```
+
+- 객체 또는 배열의 구조분해할당에서도 초기값을 기준으로 타입추론이 잘 적용된다.
+
+<br />
+
+```tsx
+function func(params) {
+	return "hello";
+}
+```
+
+- **함수의 타입 추론**을 할 때는 초기값이 아닌 **리턴문에 오는 값을 기준으로 타입이 지정**된다.
+- **매개변수가 기본값**이 정해져 있다면 그 기본값(params = “hello”)을 기준으로 타입이 지정된다.
+    - 기본값이 없을 경우에는 타입추론이 되지 않는다.
+ 
+<br />
+
+```tsx
+let d;
+
+d = 10;
+d.toFixed();
+
+d = "hello";
+d.toUpperCase();
+```
+
+- any 타입의 진화
+    - 변수를 선언하고 초기값을 설정하지 않으면 **암묵적인 any 타입**이 지정된다.
+    - 변수를 재할당 해줄때 마다 any 타입이 진화한다. (number → string)
+ 
+<br />
+
+```tsx
+const num = 10; 
+const str = "hello";
+
+let arr = [1, "string"];
+```
+
+- **const 의 경우 리터럴 타입**으로 선언이 된다.
+    - 예를들어 num같은 경우 number 타입이 아닌 10이라는 타입이 지정된다.
+- 초기값이 배열 안에 여러 값이 담아져 있다면 모든 배열의 요소들의 타입을 추론해서 공통 타입으로 추론한다. (union타입 number | string)
+
+<br />
+
+## 타입 단언
+
+> 타입스크립트의 눈을 가리는 격…  항상 조심해서 사용하기!
+
+```tsx
+type Person = {
+	name : string;
+	age : number;
+}
+
+let person:Person = {} // 오류 발생
+person.name = "안수진";
+person.age = 28;
+
+let person = {}
+person.name = "안수진"; // 오류 발생
+person.age = 28; // 오류 발생
+
+let person = {} as Person
+
+----
+
+type Dog = {
+	name : string;
+	color : string;
+}
+
+let dog  = {
+	name : "멍멍이",
+	color : "white",
+	breed : "진도" // 오류가 발생하지 않음
+} as Dog;
+```
+
+- 필요한 상황
+    - 의도와 다르게  타입이 추론될 때
+- as
+    - as 앞에 있는 값을 as 뒤에 있는 타입으로 간주하도록 도와줌
+
+### 타입 단언의 규칙
+
+- 단언식 : 값 as 단언
+    - A as B
+    - A가 B의 **슈퍼타입**이거나 A가 B의 **서브타입**이어여 함
+
+```tsx
+let num1 = 10 as never; // O
+let num2 = 10 as unknown; // O
+
+let num3 = 10 as string; // 오류 ---> 교집합이 없음
+
+let num4 = 10 as unknown as string; // 꼼수 ---> 다중단언을 하면 통과
+```
+
+### const 단언
+
+```tsx
+let num4 = 10 as const; // 리터럴 타입
+
+let cat = {
+	name : "야옹이",
+	color : "black"
+} as const; // 객체의 모든 프로퍼티가 readonly 처리가 된다. (프로퍼티 값 수정X)
+```
+
+### Non Null 단언
+
+```tsx
+type Post = {
+	title: string;
+	author?: string;
+}
+
+let post : Post = {
+	title : "졸리다",
+	author : "안수진"
+}
+
+const len : number = post.author?.length // undefinded 일 수 있기 때문에 타입 에러 발생
+
+const len : number = post.author!.length 
+```
+
+- 옵셔널 체이닝: `?`
+    - author 값이 없으면 해당 변수 값 자체를 undefinded 로 처리해줌
+- None Null 단언 : `!`
+    - 값이 null 이나 undefinded 가 아닐꺼라고 타입스크립트가 알려주는것
+    
+
+<br />
+
+## 타입 좁히기
+
+- 조건문 등을 이용해 넓은 타입에서 좁은 타입으로 타입을 상황에 따라 좁히는 방법을 이야기한다.
+
+```tsx
+function func(value : number | string) {
+	if(typeof value === "number") {
+		console.log(value.toFixed());
+	} else if (typeof value === "string") {
+		console.log(value.toUpperCase());
+	}
+}
+```
+
+- 조건문 밖에서는 type error 발생
+- 조건문 내에서 좁은 타입으로 타입을 추론해준다.
+- **타입 가드** : 조건문내에서 타입의 좁힐 수 있는 역할을 수행하는 것 (**타입을 좁힐 수 있도록 도와주는 역할**)
+    - `typeof`  :  타입을 검사
+    - `instanceof` : 객체 검사
+    - `in` : 값을 검사
+ 
+<br />
+
+```tsx
+// ASIS
+function func(value : number | string | Date | null) {
+	if(typeof value === "number") {
+		console.log(value.toFixed());
+	} else if (typeof value === "string") {
+		console.log(value.toUpperCase());
+	} else if (typeof value === "object") {
+		console.log(value.getTime())
+	}
+}
+
+// TOBE
+function func(value : number | string | Date | null) {
+	if(typeof value === "number") {
+		console.log(value.toFixed());
+	} else if (typeof value === "string") {
+		console.log(value.toUpperCase());
+	} else if (value instanceof Date) {
+		console.log(value.getTime())
+	}
+}
+```
+
+- null 값은 사용할 수 없다. 타입에러를 발생시킨다.
+- A `instanceof` B
+    - A라는 값이 **B객체**인지를 묻는다. 반환값은 true or false
+ 
+<br />
+
+```tsx
+type Person = {
+	name: string;
+	age: number;
+}
+
+// ASIS
+function func(value : number | string | Date | null | Person) {
+	if(typeof value === "number") {
+		console.log(value.toFixed());
+	} else if (typeof value === "string") {
+		console.log(value.toUpperCase());
+	} else if (value instanceof Date) {
+		console.log(value.getTime());
+	} else if (value instanceof Person){
+		console.log("...");
+	}
+}
+
+// TOBE
+function func(value : number | string | Date | null | Person) {
+	if(typeof value === "number") {
+		console.log(value.toFixed());
+	} else if (typeof value === "string") {
+		console.log(value.toUpperCase());
+	} else if (value instanceof Date) {
+		console.log(value.getTime());
+	} else if (value && "age" in value ){
+		console.log(`${value.name}은 ${value.age}살 입니다.`);
+	}
+}
+```
+
+- Person은 형식만 참조한다 =  Person은 type이다
+- instanceof 의 오른쪽 값은 타입이 올 수 없다.
+    - instanceof 은 왼쪽에 오는 값이 오른쪽에 오는 **class**의 인스턴스인지를 확인하는 연산자이다.
+- `in` 연산자 뒤에는 null 또는 undefinded 값이 올 수 없다.
+    - && 연산자로 value 값이 있는지 확인하기!
+
+<br />
+
+## 서로소 유니온 타입
+
+- **교집합이 없는** 타입들로만 만든 유니온 타입을 말한다.
+    - `string | number`
+
+```tsx
+type Admin = {
+  name: string;
+  kickCount: number;
+};
+
+type Member = {
+  name: string;
+  point: number;
+};
+
+type Guest = {
+  name: string;
+  visitCount: number;
+};
+
+type User = Admin | Member | Guest;
+
+// ASIS
+function login(user: User) {
+  if ("kickCount" in user) {
+		// Admin
+    console.log(`${user.name}님 현재까지 ${user.kickCount}명 추방했습니다`);
+  } else if ("point" in user) {
+		// Member
+    console.log(`${user.name}님 현재까지 ${user.point}모았습니다`);
+  } else {
+		// Guest
+    console.log(`${user.name}님 현재까지 ${user.visitCount}번 오셨습니다`);
+  }
+}
+```
+
+- ASIS의 문제점
+    - 다른 사람이 봤을 때 해당 조건문이 어떤 타입인지 알기에 직관적이지 않다. (해당 프로퍼티가 속하는 타입을 하나하나 살펴봐야함)
+
+<br />
+
+```tsx
+type Admin = {
+  tag: "ADMIN";
+  name: string;
+  kickCount: number;
+};
+
+type Member = {
+  tag: "MEMBER";
+  name: string;
+  point: number;
+};
+
+type Guest = {
+  tag: "GUEST";
+  name: string;
+  visitCount: number;
+};
+
+type User = Admin | Member | Guest;
+
+// 첫번째 방법
+function login(user: User) {
+  if (user.tag === "ADMIN") {
+    console.log(`${user.name}님 현재까지 ${user.kickCount}명 추방했습니다`);
+  } else if (user.tag === "MEMBER") {
+    console.log(`${user.name}님 현재까지 ${user.point}모았습니다`);
+  } else {
+    console.log(`${user.name}님 현재까지 ${user.visitCount}번 오셨습니다`);
+  }
+}
+
+// 두번째 방법
+function login(user: User) {
+  switch (user.tag) {
+    case "ADMIN": {
+      console.log(`${user.name}님 현재까지 ${user.kickCount}명 추방했습니다`);
+      break;
+    }
+    case "MEMBER": {
+      console.log(`${user.name}님 현재까지 ${user.point}모았습니다`);
+      break;
+    }
+    case "GUEST": {
+      console.log(`${user.name}님 현재까지 ${user.visitCount}번 오셨습니다`);
+      break;
+    }
+  }
+}
+```
+
+- 각각의 타입에 string linteral 타입의 tag 프로퍼티를 추가한다.
+- 각각의 타입은 교집합이 있을 수 없기 때문에 각각의 타입에 대해서 조건문 내에서 타입을 좁혀서 사용할 수 있으며 코드를 좀 더 직관적으로 수정할 수 있다.
+
+<br />
+
+- 추가적인 예시
+
+```tsx
+type AsyncTask = {
+	state : "LOADING" | "FAILED" | "SUCCESS";
+	error?: {
+    message: string;
+  };
+  response?: {
+    data: string;
+  };
+}
+
+function processResult(task: AsyncTask) {
+  switch (task.state) {
+    case "LOADING": {
+      console.log("로딩 중");
+      break;
+    }
+    case "FAILED": {
+      console.log(`에러 발생 : ${task.error?.message}`);
+      break;
+    }
+    case "SUCCESS": {
+      console.log(`성공 : ${task.response!.data}`);
+      break;
+    }
+  }
+}
+
+const loading: AsyncTask = {
+  state: "LOADING",
+};
+
+const failed: AsyncTask = {
+  state: "FAILED",
+  error: {
+    message: "오류 발생 원인은 ~~",
+  },
+};
+
+const success: AsyncTask = {
+  state: "SUCCESS",
+  response: {
+    data: "데이터 ~~",
+  },
+};
+
+```
+
+- state 값에 따라서 error 또는 response 값이 있을 수도 없을 수도 있기 때문에 옵셔널 체이닝 또는 Non null  단언을 해줘야한다.
+    - 하지만 이 방법이 안전한 방법은 아니기 때문에 아래와 같이 서로소 유니온 타입을 사용해서 수정할 수 있다.
+ 
+<br />
+
+```tsx
+type LoadingTask = {
+  state: "LOADING";
+};
+
+type FailedTask = {
+  state: "FAILED";
+  error: {
+    message: string;
+  };
+};
+
+type SuccessTask = {
+  state: "SUCCESS";
+  response: {
+    data: string;
+  };
+};
+
+type AsyncTask = LoadingTask | FailedTask | SuccessTask;
+
+function processResult(task: AsyncTask) {
+  switch (task.state) {
+    case "LOADING": {
+      console.log("로딩 중");
+      break;
+    }
+    case "FAILED": {
+      console.log(`에러 발생 : ${task.error.message}`);
+      break;
+    }
+    case "SUCCESS": {
+      console.log(`성공 : ${task.response.data}`);
+      break;
+    }
+  }
+}
+
+const loading: AsyncTask = {
+  state: "LOADING",
+};
+
+const failed: AsyncTask = {
+  state: "FAILED",
+  error: {
+    message: "오류 발생 원인은 ~~",
+  },
+};
+
+const success: AsyncTask = {
+  state: "SUCCESS",
+  response: {
+    data: "데이터 ~~",
+  },
+};
+
+```
+
+
+
+
+
  
