@@ -17,7 +17,7 @@ function func(value: number | string) {
   }
 }
 
-// ASIS
+// ASIS-1
 function func1(value: number | string | Date | null) {
   if (typeof value === "number") {
     console.log(value.toFixed());
@@ -29,9 +29,9 @@ function func1(value: number | string | Date | null) {
   //   }
 }
 
-// TOBE
-// A instanceof B
-// A라는 값이 B객체 인지를 묻는다. 반환값은 true or false
+// TOBE-1
+// - A instanceof B
+// : A라는 값이 B객체 인지를 묻는다. 반환값은 true or false
 function func2(value: number | string | Date | null) {
   if (typeof value === "number") {
     console.log(value.toFixed());
@@ -47,7 +47,7 @@ type Person = {
   age: number;
 };
 
-// ASIS
+// ASIS-2
 function func3(value: number | string | Date | null | Person) {
   if (typeof value === "number") {
     console.log(value.toFixed());
@@ -61,9 +61,9 @@ function func3(value: number | string | Date | null | Person) {
   // }
 }
 
-// TOBE
-// A in B
-// B에 A의 값이 있는지 확인 한다. 반환값은 true or false
+// TOBE-2
+// - A in B
+// : B에 A의 값이 있는지 확인 한다. 반환값은 true or false
 function func4(value: number | string | Date | null | Person) {
   if (typeof value === "number") {
     console.log(value.toFixed());
