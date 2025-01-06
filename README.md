@@ -18,6 +18,11 @@
 14. [타입 단언](#타입-단언)
 15. [타입 좁히기](#타입-좁히기)
 16. [서로소 유니온 타입](#서로소-유니온-타입)
+17. [함수 타입 정의](#함수-타입-정의)
+18. [함수 타입 표현식과 호출 시그니처](#함수-타입-표현식과-호출-시그니처)
+19. [함수 타입의 호환성](#함수-타입의-호환성)
+20. [함수 오버로딩](#함수-오버로딩)
+21. [사용자 정의 타입가드](#사용자-정의-타입가드)
 
 <br />
 
@@ -1135,6 +1140,357 @@ const success: AsyncTask = {
 };
 
 ```
+
+<br />
+
+## 함수 타입 정의
+
+### 함수를 설명하는 가장 좋은 방법
+
+```tsx
+// 함수 선언식
+function func(a:number, b: number) : number {
+	return a + b
+}
+```
+
+```tsx
+// 화살표 함수
+const add =(a:number, b: number) : number => a + b;
+```
+
+- 자바스크립트 기준 : 어떤 매개변수를 받고, 어떤 결과값을 반환하는지 이야기한다.
+- 타입스크립트 기준 : 어떤 **타입의 매개변수**를 받고 **타입의 결과**값을 반환하는지 이야기한다.
+
+### 함수의 매개변수
+
+```tsx
+function introduce(name = "안수진", age?:number) {
+		console.log(`name : ${name}`);
+		if(typeof age === "number"){ // 타입좁히기 - 타입가드
+			console.log(`age : ${age + 1}`);
+		}
+		
+}
+
+introduce("안수진", 162);
+introduce("안수진");   // ---> 선택적 매개변수
+```
+
+- 기본값을 주면 알아서 타입을 추론해준다.
+- 선택적 매개변수 사용시 주의할 점
+    - 필수 매개변수 앞에 오면 안된다.
+
+### rest parameter
+
+```tsx
+function getSum(...rest : number[]){
+	let sum = 0;
+	rest.forEach((i) => (sum += i));
+	
+	return sum;
+}
+
+getSum(1,2,3) // 6
+getSum(1,2,3,4,5) // 15
+```
+
+- rest 매개변수:  함수에 전달한 인수들을 순차적으로 배열에 저장한다.  [자세한 내용](https://reactjs.winterlood.com/4e81b92b-4097-4fd8-8c67-09a7588c94d6#c027776dc2ea440d9867381b8ec296fe)
+- 만약 배열의 개수를 정해놓고 싶다면 튜플타입을 사용한다.
+    
+    ```tsx
+    function getSum(...rest : [number, number, number]){
+    	let sum = 0;
+    	rest.forEach((i) => (sum += i));
+    	
+    	return sum;
+    }
+    
+    getSum(1,2,3) // 6
+    getSum(1,2,3,4,5) // ---> 에러 발생
+    ```
+    
+
+<br />
+
+## 함수 타입 표현식과 호출 시그니처
+
+### 함수 타입 표현식
+
+```tsx
+type Add = (a: number, b:number) => number;
+
+const add:Add = (a,b) => a + b;
+```
+
+- **타입 별칭**을 이용해서 **함수의 타입을 정의**할 수 있다.
+- 좋은점
+    - 중복되는 타입 정의를 줄일 수 있다.
+    
+    ```tsx
+    type Operation = (a: number, b:number) => number;
+    
+    const add:Operation = (a,b) => a + b;
+    const sub:Operation = (a,b) => a - b;
+    const mutiply:Operation = (a,b) => a * b;
+    const divide:Operation = (a,b) => a / b;
+    ```
+    
+- 타입 별칭 없이도 타입 표현식 만으로도 표현이 가능하다.
+    
+    ```tsx
+    const add:(a: number, b:number) => number = (a,b) => a + b;
+    ```
+    
+
+### 호출(콜) 시그니처
+
+```tsx
+type Operation2 = {
+	(a: number, b:number) : number
+}
+
+const add2:Operation2 = (a,b) => a + b;
+const sub2:Operation2 = (a,b) => a - b;
+const mutiply2:Operation2 = (a,b) => a * b;
+const divide2:Operation2 = (a,b) => a / b;
+```
+
+- **함수 타입을 정의하는 문법**을 말한다.
+- 함수 타입 표현식과 동일한 역할을 한다.
+- 함수가 객체이기 때문에 **객체**처럼 다룬다. [자세한 내용](https://reactjs.winterlood.com/0f33b159-6b19-433b-8db4-68d6b4a122e0)
+- ✚  하이브리드 타입
+    - 객체에 프로퍼티를 추가하여 사용할 수 있다.
+    - 이 타입이 갖는 변수를 객체로도 쓰고 함수로도 쓸 수 있다.
+    
+    ```tsx
+    type Operation2 = {
+    	(a: number, b:number) => number,
+    	name: string;
+    }
+    
+    const add2:Operation2 = (a,b) => a + b;
+    
+    add2();
+    add2.name;
+    ```
+    
+<br />
+
+## 함수 타입의 호환성
+
+- 특정 함수 타입을 다른 함수 타입으로 취급해도 괜찮은가를 판단한다.
+- 판단 기준
+    1. 반환값의 타입이 호환되는가?
+    2. 매개변수의 타입이 호환되는가?
+
+### 반환값이 호환되는가?
+
+```tsx
+type A = () => number; //number type
+type B = () => 10; // number literal type
+
+let a : A = () => 10;
+let b : B = () =>10;
+
+a = b // 업 캐스팅  ⭕️
+b = a // 다운 캐스팅  ❌
+```
+
+- 반환값이 **다운 캐스팅이되면 안된다.**
+    - 업 캐스팅은 호환된다
+
+### 매개변수가 호환되는가?
+
+1. ⭐️ 매개변수의 개수가 **같을 때** ⭐️
+    
+    ```tsx
+    type C = (value:number) => void;
+    type D = (value:number) => void; 
+    
+    let c : C = () => {};
+    let d : D = () => {};
+    
+    c = d; // 업 캐스팅 ❌
+    d = c; // 다운 캐스팅 ⭕️
+    ```
+    
+    - 매개변수의 타입을 기준으로 함수 타입의 호환성을 판단 할 때는 업 캐스팅이 안되고, 다운 캐스팅이 된다.
+        - 반환값의 경우와 반대이다.
+    
+    ```tsx
+    // 슈퍼타입
+    type Animal = {
+    	name: string;
+    }
+    
+    // 서브 타입
+    type Dog = {
+    	name: string;
+    	color: string;
+    }
+    
+    let animalFunc = (animal: Animal) => {
+    	console.log(animal.name);
+    };
+    
+    let dogFunc = (dog: Dog) => {
+    	console.log(dog.name);
+    	console.log(dog.color);
+    }
+    
+    animalFunc = dogFunc // 업 캐스팅 ❌
+    dogFunc = animalFunc // 다운 캐스팅 ⭕️
+    
+    // animalFunc = dogFunc 
+    let testFunc1 = (animal : Animal) => {
+    	console.log(animal.name);
+    	console.log(animal.color); // 에러 발생 
+    }
+    
+    // dogFunc = animalFunc 
+    let testFunc2 = (dog : Dog) => {
+    	console.log(dog.name);
+    }
+    
+    ```
+    
+2. 매개변수의 개수가 **다를 때**
+    
+    ```tsx
+    type Func1  = (a:number, b:number) => void;
+    type Func2  = (a:number) => void;
+    
+    let func1: Func1 = (a,b) => {};
+    let func2: Func2 = (a) => {};
+    
+    func1 = func2; //  2개  <- 1개 ⭕️
+    func2 = func1; //  1개  <- 2개 ❌
+    ```
+    
+    - 할당하려고 하는 함수의 매개변수가 더 적을때 만 가능하다.
+    - 하지만 매개변수의 타입이 다르면 불가능하다.
+    
+
+<br />
+
+## 함수 오버로딩
+
+- 함수를 매개변수의 개수나 타입에 따라 **여러가지 버전으로 정의**하는 방법
+    - C언어 예시
+        
+        ```tsx
+        // 매개변수 없음
+        void func(){
+        	printf("매개변수 없음");
+        }
+        
+        // 매개변수 한개
+        void func(int a){
+        	printf(a + 20);
+        }
+        
+        // 매개변수 두개
+        void func(int a , int a){
+        	printf(i + j);
+        }
+        ```
+        
+    - 타입스트립트에서만 제공한다. (자바스크립트에서는X)
+
+1. 버전 정의 ⇒ 오버로드 시그니처
+    
+    ```tsx
+    // 버전들 -> 오버로드 시그니처
+    function func(a:number) : void;
+    function func(a:number, b:number, c:number) : void;
+    ```
+    
+    - 함수 오버로딩을 구현하기 위해서 가장 첫번째로 할 일은 함수의 어떤 버전들이 있는지 알려줘야한다.
+        - 함수 구현없이 선언식만 써놓은 것을 **오버로드 시그니처** 라고 부른다.
+    
+2. 실제 구현부 ⇒  구현 시그니처
+    
+    ```tsx
+    function func() {}
+    
+    func(); ❌
+    func(1); ⭕️
+    func(1,2); ❌
+    func(1,2,3); ⭕️
+    ```
+    
+    ```tsx
+    function func(a:number, b?:number, c?:number){
+    	if(typeof b === "number" && typeof c === "number"){
+    		console.log(a + b + c);
+    	} else {
+    		console.log(a * 20);
+    	}
+    }
+    ```
+    
+    - 구현 내용
+        - 하나의 함수 func
+        - 모든 매개변수의 타입 number
+        - Ver1. 매개변수가 1개 → 이 매개변수에 20을 곱한 값 출력
+        - Ver2. 매개변수가 3개 → 이 매개변수들을 다 더한 값 출력
+        
+
+<br />
+
+## 사용자 정의 타입가드
+
+- 사용자 정의 타입가드 란?
+    - 참 또는 거짓을 반환하는 함수를 이용해 필요에 따라 타입 가드를 만들 수 있도록 하는 타입스크립트 문법
+
+```tsx
+type Dog = {
+	name: string;
+	isBark: boolean;
+};
+
+type Cat = {
+	name: string;
+	isScratch: boolean;
+}
+
+type Animal = Dog | Cat;
+
+function warning(animal: Animal){
+	if("isBark" in animal) {
+		// 강아지
+	} else if ("isScratch" in animal){
+		// 고양이
+	}
+}
+```
+
+- 서로소 유니온 타입을 사용하지 못하는 상황이라고 가정했을 때, 다음과 같은 warning 함수는 가독성 면에서 아쉬운 점이 있다.
+- 만약 key name 이 바뀌기라도 한다면 일일 수정해줘야한다.
+
+```tsx
+function isDog(animal: Animal): animal is Dog{
+	return (animal as Dog).isBark !== undefined;
+}
+
+function isCat(animal: Animal): animal is Cat{
+	return (animal as Cat).isScratch !== undefined;
+}
+
+function warning(animal: Animal){
+	if(isDog(animal)) {
+		// 강아지
+	} else if (isCat(animal)){
+		// 고양이
+	}
+}
+```
+
+- `isDog` Dog 타입인지를 확인하는 타입 가드
+- `isCat` Cat 타입인지를 확인하는 타입 가드
+- `animal is Dog`
+    - 이 함수가 true를 반환하면 조건문 내부에서 이 값이 Dog 타입임을 보장한다는 의미이다.
 
 
 
