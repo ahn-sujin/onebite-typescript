@@ -1306,7 +1306,7 @@ b = a // 다운 캐스팅  ❌
     
     ```tsx
     type C = (value:number) => void;
-    type D = (value:number) => void; 
+    type D = (value:10) => void; 
     
     let c : C = () => {};
     let d : D = () => {};
