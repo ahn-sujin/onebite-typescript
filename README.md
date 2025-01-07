@@ -23,6 +23,9 @@
 19. [함수 타입의 호환성](#함수-타입의-호환성)
 20. [함수 오버로딩](#함수-오버로딩)
 21. [사용자 정의 타입가드](#사용자-정의-타입가드)
+22. [인터페이스](#인터페이스)
+23. [인터페이스 확장하기](#인터페이스_확장하기)
+24. [인터페이스 합치기](#인터페이스_합치기)
 
 <br />
 
@@ -1492,7 +1495,249 @@ function warning(animal: Animal){
 - `animal is Dog`
     - 이 함수가 true를 반환하면 조건문 내부에서 이 값이 Dog 타입임을 보장한다는 의미이다.
 
+<br />
 
+## 인터페이스
+
+```tsx
+// type
+type A = {
+	a: string;
+	b: number;
+}
+
+// interface
+interface A {
+	a: string;
+	b: number;
+}
+```
+
+- **인터페이스**란?
+    - 타입에 이름을 지어주는 또 다른 문법
+    - 상호간에 약속된 규칙
+    - **객체의 구조를 정의**하는데 특화된 문법으로 상속, 합침 등의 특수한 기능을 제공
+    - 효육적인 객체 타입 정의를 할 수 있음
+
+<br />
+
+```tsx
+interface Person {
+	name: string; 
+	age?: number;
+	sayHi: () => void; // 함수 표현식
+	sayHi() : void // 호출 시그니처
+	sayHi(a: number, b:number): void // 호출 시그니처
+}
+
+const person : Person = {
+	name: "안수진",
+	age: 28,
+	sayHi: function() {
+		console.log("hi");
+	},
+}
+
+// 오버로딩 구현
+person.sayHi();
+person.sayHi(1,2);
+```
+
+- 기본 문법은 type 문법과 동일하다.
+- 메서드(`sayHi()`)도 인터페이스에서 정의 가능하다.
+    - 오버로딩 구현
+        - **함수타입 표현식**을 사용하면 안되고 **호출 시그니처**를 사용해야한다.
+     
+<br />
+
+```tsx
+type Type1 = number | string;
+type Type2 = number & string;
+```
+
+- 인터페이스와 type 별칭과의 차이점
+    - 인터페이스에서는 유니온 이나 인터섹션 타입을 만들 수 없다.
+    - 타입 별칭을 활용하거나 타입 주석에 활용을 해야한다.
+- 헝가리안 표기법
+    - 인터페이스 이름을 정의할때 맨 앞에 `I`를  붙이는 것 (`IPerson`)
+    - 자바스크립트에서는 사용하지 않는 표기법이다.
+    - 하지만 각 팀이나 회사의 컨벤션에 맞춰서 따를것 !
+
+<br />
+
+## 인터페이스 확장하기
+
+```tsx
+// ASIS
+interface Animal {
+	name: string;
+	age: number;
+}
+
+interface Dog {
+	name: string;
+	age: number;
+	isBark: boolean;
+}
+
+interface Cat {
+	name: string;
+	age: number;
+	isScratch: boolean;
+}
+
+interface Chicken {
+	name: string;
+	age: number;
+	isFly: boolean;
+}
+```
+
+- 중복되는 프로퍼티가 많아 비효율적이다.
+
+<br />
+
+```tsx
+// TOBE
+interface Animal {
+	name: string;
+	age: number;
+}
+
+interface Dog extends Animal {
+	isBark: boolean;
+}
+
+interface Cat extends Animal {
+	isScratch: boolean;
+}
+
+interface Chicken extends Animal {
+	isFly: boolean;
+}
+```
+
+- `extends`
+    - ‘확장한다’ 라는 것을 의미한다.
+    - 다른 인터페이스로부터 해당 인터페이스가 가지고 있는 모든 프로퍼티들을 자동으로 포함하도록 하는 것
+    - 확장 또는 상속이라고 부른다.
+ 
+<br />
+
+```tsx
+// 타입 별칭
+type Animal = {
+	name: string;
+	age: number;
+}
+
+// 인터페이스
+interface Animal {
+	name: string;
+	age: number;
+}
+
+interface Dog extends Animal {
+	name : "hello;
+	isBark: boolean;
+}
+
+```
+
+- 원본 프로퍼티 타입을 **재정의 할 수 있다**.
+    - 단 재정의 할 수 있는 조건은, **원본 프로퍼티 타입의 서브 타입으로만 정의** 할 수 있다.
+    - string 타입을 리터럴 타입으로 재정의 할 수는 있지만, number 타입으로 재정의 할 수 는 없다는 것을 의미한다.
+- 인터페이스는 **객체 타입이면 다 확장할 수 있다**.
+    - 꼭 인터페이스롤 타입이 선언되지 않고 타입 별칭으로 선언 되었더라고 확장하는데 사용될 수 있다.
+ 
+<br />
+
+```tsx
+interface DogCat extends Dog,Cat {}
+
+const dogCat : DogCat = {
+	name: "",
+	age: 0 ,
+	isBark: true,
+	isScratch: true
+}
+```
+
+- 다중 확장
+    - 여러가지 인터페이스를 확장하는 것을 말한다.
+
+<br />
+
+## 인터페이스 합치기
+
+```tsx
+interface Person {
+	name: string;
+}
+
+interface Person {
+	age: number;
+}
+
+const person : Person = {
+	name:  "",
+	age: 28
+}
+```
+
+- type 별칭에서는 동일한 이름을 선언을 할 수 없지만 인터페이스는 가능하다.
+    - 그 이유는 동일한 이름으로 선언된 인터페이스는 다 합쳐지기 때문이다. 그리고 이를 **선언 합침** 이라고 한다.
+ 
+<br />
+
+```tsx
+interface Person {
+	name: string;
+}
+
+interface Person {
+	name: number; // 충돌 발생
+	age: number;
+}
+
+const person : Person = {
+	name:  "",
+	age: 28
+}
+```
+
+- 동일한 프로퍼티를 재정의하는데 타입을 다르게 선언하면 **충돌** 이 발생하게 된다.
+    - **확장에서는** 프로퍼티를 재정의할 때 선언된 타입의 서브타입이어도 허용이 됐지만, 
+    **합침에서는** 서브타입도 허용되지 않고 반드시 똑같은 타입으로 선언해줘야한다.
+
+<br />
+
+```tsx
+interface Lib {
+	a: number;
+	b: number;
+}
+
+const lib : Lib = {
+	a: 1,
+	b: 2,
+}
+
+//// 위와 같은 상황에서 c 라는 프로퍼티를 추가해야할 때
+
+interface Lib {
+	c : string
+}
+
+const lib : Lib = {
+	a: 1,
+	b: 2,
+	c: "new",
+}
+```
+
+- 다음과 같은 인터페이스 합치기는 평소에는 잘 사용되지 않고 **모듈 보강** 의 상황에서 주로 사용된다.
+    - 공식적으로는 node_modules 에 있는 내용을 불러와서 해야하기 때문에 자세한 내용에 대해서는 나중에 공부하는 것을 추천!
 
 
 
