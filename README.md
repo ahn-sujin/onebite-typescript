@@ -24,8 +24,11 @@
 20. [함수 오버로딩](#함수-오버로딩)
 21. [사용자 정의 타입가드](#사용자-정의-타입가드)
 22. [인터페이스](#인터페이스)
-23. [인터페이스 확장하기](#인터페이스_확장하기)
-24. [인터페이스 합치기](#인터페이스_합치기)
+23. [인터페이스 확장하기](#인터페이스-확장하기)
+24. [인터페이스 합치기](#인터페이스-합치기)
+25. [제네릭 소개](#제네릭-소개)
+26. [타입 변수 응용하기](#타입-변수-응용하기)
+27. [map, forEach 메서드 타입 정의하기](#map,-forEach-메서드-타입-정의하기)
 
 <br />
 
@@ -1738,6 +1741,210 @@ const lib : Lib = {
 
 - 다음과 같은 인터페이스 합치기는 평소에는 잘 사용되지 않고 **모듈 보강** 의 상황에서 주로 사용된다.
     - 공식적으로는 node_modules 에 있는 내용을 불러와서 해야하기 때문에 자세한 내용에 대해서는 나중에 공부하는 것을 추천!
+ 
+
+<br />
+
+## 제네릭 소개
+
+- **제네릭** 이란?
+    - 일반적인, 포괄적인 이라는 의미를 갖고 있다.
+    - 함수나 인터페이스, 타입 별칭, 클래스 등을 **다양한 타입과 함께 동작하**도록 만들어 주는 타입스크립트의 기능 중 하나이다.
+        - 타입을 유연하게 정의할 수 있다.
+    - **제네릭 함수**는 두루두루 모든 타입의 값을 다 적용할 수 있는 범용적인 함수
+
+<br/>
+
+```tsx
+// 제네릭 함수 기본 형식
+function func<T>(value: T): T {
+	return value;
+}  
+
+let num = func(10);
+```
+
+- `<T>`  : 타입을 저장하는 변수 (타입 변수)
+    - 상황에 따라 다른 변수를 담을 수 있다.
+    - 변수 `<T>` 의 타입이 결정되는 시기 함수를 호출할 때마다 결정된다.
+
+- **제네릭 함수** : 타입 변수`<T>` 와 함께 여러 타입의 값을 인수로 받아서 범용적으로 쓸 수 있는 함수
+
+<br />
+
+```tsx
+function func<T>(value: T): T {
+	return value;
+}  
+
+let arr = func<[number, number, number]>([1,2,3]);
+```
+
+- 변수에 할당되는 타입을 인수를 통해서 추론하는 방식 말고 미리 지정해 놓을 수 있다.
+    - 튜플타입 활용할 수 있다.
+
+<br />
+
+## 타입 변수 응용하기
+
+### 첫번째 사례 -  인수
+
+```tsx
+// ASIS
+function swap<T>(a:T,b:T){
+	return [b,a];
+}
+
+const [a,b] = swap("1",2); // 오류 발생
+```
+
+- 첫번째 인수는 string 타입, 두번째 인수는 number 타입이기 때문에 <T>에 저장되는 타입이 달라서 오류가 발생하다.
+
+<br />
+
+```tsx
+// TOBE
+function swap<T,U>(a:T,b:U){
+	return [b,a];
+}
+
+const [a,b] = swap("1",2);
+```
+
+- `<T>` 에는 string 타입이 할당되고,  `<U>` 에는 number 타입이 할당된다.
+- 위와 같이 타입 변수를 여러개 선언해서 사용이 가능하다.
+
+<br />
+
+### 두번째 사례 - 배열
+
+```tsx
+// ASIS
+function returnFirstValue<T>(data:T[]){
+	return data[0];
+}
+
+let num = returnFirstValue([1,2,3]); 
+// 0
+
+let str = returnFirstValue(["hello","mynameis"])
+// "hello"
+```
+
+- 배열 안에 index에 접근해서 타입을 알고 싶을 때
+
+<br />
+
+```tsx
+// TOBE
+function returnFirstValue<T>(data:[T, ...unknown[]]){
+	return data[0];
+}
+
+let num = returnFirstValue([1,2,3]); 
+// 0
+
+let str = returnFirstValue([1,"hello","mynameis"])
+// 1
+```
+
+- 배열의 요소가 추가 되었을 때 유니온 타입으로 추론되는 것 보다 더 정확하게 첫번째 요소의 타입을 추론해내고 싶을 때
+    - 튜플타입을 활용한다.
+    - `[T, ...unkown[]]`
+        - 첫번째 요소의 타입은 T 이고 나머지 타입은 모르겠지만 배열로 들어온다.
+
+<br />
+
+### 세번째 사례 - 프로퍼티
+
+```tsx
+function getLength<T extends {length: number}>(data: T) {
+	return data.length; // 프로퍼티 length의 값을 반환하는 함수
+}
+
+let var1 = getLength([1,2,3]); // 3
+ 
+let var2 = getLength("12345"); // 5
+
+let var3 = getLength({length: 10}); // 10
+
+let var4 = getLength(10); // 타입에러 발생!
+```
+
+- extends 를 사용하기 전에는 변수 `<T>`에 length 라는 프로퍼티 값이 있는지 알 수 없기 때문에 타입 에러가 발생한다.
+- extends 를 활용해서 타입 변수`<T>`에 조건을 달아서 제한 할 수 있다.
+    - `<T extends {length: number}>`
+        - 확장(extends)을 통해서 T의 타입을 제한해준다.
+
+<br />
+
+## map, forEach 메서드 타입 정의하기
+
+### map 메서드
+
+```tsx
+// ASIS
+const arr = [1,2,3];
+
+function map<T>(arr:T[], callback:(item: T) => T){
+	let result = [];
+	for(let i = 0; i < arr.length; i++){
+		result.push(callback(arr[i]));
+	}
+	
+	return result;
+}
+
+map(arr, (it) => it * 2);
+map(["hi","hello"], (it) => parseInt(it)); 
+
+```
+
+- `map(["hi","hello"], (it) => parseInt(it));`
+    - 두번째 인자인 콜백함수의 리턴값이 number 타입이 되기 때문에 타입 에러가 발생한다.
+    
+<br />
+
+```tsx
+// TOBE
+const arr = [1,2,3];
+
+function map<T, U>(arr:T[], callback:(item: T) => U){
+	let result = [];
+	for(let i = 0; i < arr.length; i++){
+		result.push(callback(arr[i]));
+	}
+	
+	return result;
+}
+
+map(arr, (it) => it * 2);] 
+map(["hi","hello"], (it) => parseInt(it)); 
+```
+
+- `<U>` 변수 타입을 추가해서 타입이 콜백함수의 리터값의 타입이 바뀌어도 허용될 수 있도록 설정해준다
+
+### forEach 메서드
+```tsx
+const arr2 = [1,2,3];
+
+function forEach<T>(arr: T[], callback: (item: T) => void){
+	for(let i = 0; i < arr.length; i++){
+		callback(arr[i]);
+	}
+}
+
+forEach(arr2, (it)=> {
+	console.log(it.toFixed());  // number
+})
+
+forEach(["hi","hello"], (it) => {
+	console.log(it); // string
+})
+```
+
+
+  
 
 
 
