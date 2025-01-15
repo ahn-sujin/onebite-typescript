@@ -29,6 +29,8 @@
 25. [제네릭 소개](#제네릭-소개)
 26. [타입 변수 응용하기](#타입-변수-응용하기)
 27. [map, forEach 메서드 타입 정의하기](#map-forEach-메서드-타입-정의하기)
+28. [제네릭 인터페이스 & 제네릭 타입 별칭](#제네릭-인터페이스-&-제네릭-타입-별칭)
+29. [프로미스와 제네릭](#프로미스와-제네릭)
 
 <br />
 
@@ -1942,7 +1944,279 @@ forEach(["hi","hello"], (it) => {
 	console.log(it); // string
 })
 ```
+<br />
 
+## 제네릭 인터페이스 & 제네릭 타입 별칭
+- `<T>`를 부르는 명칭
+  - 타입 변수 (타입스크립트 공식문서)
+  - 타입 파라미터
+  - 제네릭 타입 변수
+  - 제네릭 타입 파라미터
+ 
+### 제네릭 인터페이스
+```tsx
+interface KeyPair<K, V> {
+	key: K, 
+	value: V
+}
+
+let keyPair1: KeyPair<string, number> = {
+	key: "key",
+	value: 0
+}
+
+let keyPair2 : KeyPair<boolean, string[]> = {
+	key: true,
+	value: ["1", "2"]
+}
+```
+
+- **제네릭 인터페이스**는 제네릭 함수와 달리 **타입으로 변수를 정의할 때 반드시 타입 변수의 타입을 직접 할당해 줘야한다.**
+- 하나의 인터페이스로 다양한 타입의 객체를 표현할 수 있다.
+
+<br />
+
+### 인덱스 시그니처
+
+```tsx
+// ASIS : 제네릭 인터페이스 적용 전
+interface NumberMap {
+  [key: string]: number;
+}
+
+let numberMap: NumberMap = {
+  key1: -1231,
+  key2: 123123,
+};
+```
+
+```tsx
+// TOBE: 제네릭 인터페이스 적용 후
+interface Map<V> {
+  [key: string]: V;
+}
+
+let stringMap: Map<string> = {
+  key: "value",
+};
+
+let booleanMap: Map<boolean> = {
+  key: true,
+};
+```
+
+- 하나의 타입으로 다양한 객체를 유연하게 표현할 수 있다.
+
+<br />
+
+### 제네릭 타입 별칭
+
+```tsx
+type Map2<T> = {
+	[key: string] : V;
+}
+
+let stringMap2: Map2<string> = {
+	key: "hello",
+}
+```
+
+- 제네릭 인터페이스와 마찬가지로 제네릭 타입 별칭도 타입 변수에 할당할 타입을 직접 지정해줘야한다.
+- 제네릭 인터페이스와 문법만 다르고 사용법은 비슷하다.
+
+<br />
+
+### 제네릭 인터페이스의 활용 예시 (유저 관리 프로그램)
+```tsx
+// ASIS
+interface Student1 {
+  type: "student";
+  school: string;
+}
+
+interface Developer1 {
+  type: "developer";
+  skill: string;
+}
+
+interface User1 {
+  name: string;
+  profile: Student1 | Developer1;
+}
+
+// 학생 유저일 때만 실행되는 함수
+function goToSchool1(user: User1) {
+  // 타입 좁히기
+  if (user.profile.type !== "student") {
+    console.log("학생이 아닙니다.");
+    return;
+  }
+
+  const school = user.profile.school;
+  console.log(`${school}로 등교 완료!`);
+}
+
+const developerUser1: User1 = {
+  name: "안수진",
+  profile: {
+    type: "developer",
+    skill: "Typescript",
+  },
+};
+
+const studentrUser1: User1 = {
+  name: "홍수진",
+  profile: {
+    type: "student",
+    school: "서울대학교",
+  },
+};
+
+goToSchool1(developerUser1);
+goToSchool1(studentrUser1);
+```
+
+- 문제점
+    - 유저 구분이 점점 많아지고 특정 유저에게만 실행해야하는 함수가 많아진다면 하나하나 타입을 구분하고(타입 좁히기) 조건을 검사하는 로직을 추가 해야하기 때문에 귀찮아 질 수 있다.
+
+<br />
+
+```tsx
+// TOBE
+interface Student2 {
+  type: "student";
+  school: string;
+}
+
+interface Developer2 {
+  type: "developer";
+  skill: string;
+}
+
+interface User2<T> {
+  name: string;
+  profile: T;
+}
+
+// 학생 유저일 때만 실행되는 함수
+function goToSchool2(user: User2<Student2>) {
+  const school = user.profile.school;
+  console.log(`${school}로 등교 완료!`);
+}
+
+const developerUser2: User2<Developer2> = {
+  name: "안수진",
+  profile: {
+    type: "developer",
+    skill: "Typescript",
+  },
+};
+
+const studentrUser2: User2<Student2> = {
+  name: "홍수진",
+  profile: {
+    type: "student",
+    school: "서울대학교",
+  },
+};
+
+// goToSchool2(developerUser2); // error
+goToSchool2(studentrUser2);
+```
+
+- `goToSchool2` 함수의 인수 타입을 Student 로 할당했기 때문에 기존에 사용했던 타입 좁히기는 지워도 되고 만약 `goToSchool2(developerUser)`를 호출하게 되면 에러가 발생한다.
+
+<br />
+
+## 프로미스와 제네릭
+```tsx
+// 프로미스 객체 만들기 
+const promise = new Promise((resolve, reject) => {
+	setTimeout(() => {
+		resolve(20);
+	}, 3000);
+})
+
+promise.then((res) => {
+	console.log(res) // 20
+})
+```
+
+- 프로미스는 제네릭 클래스를 기반으로 타입이 선언되어 있기 떄문에 비동기 처리 결과값의 타입을 정의해 줄 수는 있지만, 반대로 실패 값의 타입은 정의할 수 없다.
+    - 추가로 결과값의 타입을 정의하지 않으면 기본값으로 unknown 이 전달 된다.
+- 비동기 작업이 성공했을 때 호출되는 함수 `resolve` , 전달된 인수 20은 결과값이다.
+- 비동기 작업이 실패했을 때 호출되는 함수 `reject` ,  실패 이유를 인수로 전달한다.
+
+<br />
+
+```tsx
+const promise = new Promise<number>((resolve, reject) => {
+	setTimeout(() => {
+		resolve(20);
+	}, 3000);
+})
+
+promise.then((res) => {
+	console.log(res * 10) // 200
+})
+```
+
+- 프로미스의 생성자를 호출할 때 타입 변수를 할당해 주면 비동기 처리의 결과 값을 직접 명시 할 수 있다.
+
+<br />
+
+```tsx
+const promise = new Promise<number>((resolve, reject) => {
+	setTimeout(() => {
+		reject("~~ 때문에 실패!")
+	}, 3000);
+})
+
+promise.catch((err) => {
+	if(typeof err === "string") {
+		console.log(err)
+	}
+})
+```
+
+- 실패했을 때의 타입은 정의해 줄 수 없다.
+    - reject 의 인수가 any 타입으로 지정되어 있기 때문에 타입 좁히기를 사용해야 한다.
+      
+<br />
+
+### 프로미스를 반환하는 함수의 타입을 정의하는 예시
+
+```tsx
+interface Post {
+	id: number;
+	title: string;
+	content: string;
+}
+
+function fetchPost() : Promise<Post> {
+	return new Promise((resolve, reject) => {
+		setTimeout(() => {
+			resolve({
+				id:1,
+				title:"게시글 제목",
+				content: "게시글 컨텐츠"
+			})
+		},3000)
+	})
+}
+
+const postRequest = fetchPost();
+
+postRequest.then((res) => {
+	res.id; // 1
+})
+```
+
+- 타입을 정의하는 방법
+    1. Promise 생성자에 타입 변수를 할당해준다.  `new Promise<Post>`
+    2. 함수의 반환값 타입을 명시한다. `function fetchPost() : Promise<Post>`
+- 함수의 반환값 타입을 직접 정의해 주는 것(두번째 방법)이 **협업의 관점**에서 더 가독성 있을 수 있다.
+    - 함수의 선언 부분만 봐도 알 수 있기 때문에!
 
   
 
