@@ -31,6 +31,11 @@
 27. [map, forEach 메서드 타입 정의하기](#map-forEach-메서드-타입-정의하기)
 28. [제네릭 인터페이스 & 제네릭 타입 별칭](#제네릭-인터페이스-&-제네릭-타입-별칭)
 29. [프로미스와 제네릭](#프로미스와-제네릭)
+30. [타입 조작하기](#타입-조작하기)
+31. [인덱스드 엑세스 타입](#인덱스드-엑세스-타입)
+32. [keyof 연산자](#keyof-연산자)
+33. [맵드 타입](#맵드-타입)
+34. [템플릿 리터럴 타입](#템플릿-리터럴-타입)
 
 <br />
 
@@ -2218,7 +2223,257 @@ postRequest.then((res) => {
 - 함수의 반환값 타입을 직접 정의해 주는 것(두번째 방법)이 **협업의 관점**에서 더 가독성 있을 수 있다.
     - 함수의 선언 부분만 봐도 알 수 있기 때문에!
 
-  
+
+<br />
+
+## 타입 조작하기
+
+<img width="939" alt="타입조작하기" src="https://github.com/user-attachments/assets/d63f43cc-43c1-4943-878f-bb3ede8e535e" />
+
+### 타입 조작하기란?
+- 원래 존재하던 타입을 **상황에 따라 각각 다른 타입으로 변환**시키는 것을 말한다.
+- 타입 조작 유형
+  - 제네릭
+  - 인덱스드 엑세스 타입
+  - keyof 연산자
+  - Mapped(맵드) 타입
+  - 템플릿 리터럴 타입
+  - 조건부 타입
+ 
+<br />
+
+## 인덱스드 엑세스 타입
+
+- **객체, 배열, 튜플** 타입에서 특정 프로퍼티 혹은 요소의 **타입을 추출**하는 타입
+- 복잡하고 큰 타입으로부터 **필요한 타입만 추출**해서 사용할 수 있다.
+
+### 객체
+
+```tsx
+interface Post {
+	title: string;
+	content: string;
+	author: {
+		id:number;
+		name: string;
+		age: number;
+	}
+}
+
+function printAuthorInfo(author : Post["author"]){
+	console.log(`${author.name}-${author.id}`);
+}
+
+const post: Post = {
+	title: "게시글 제목",
+	content: "게시글 본문",
+	author: {
+		id:1,
+		name: "안수진",
+		age: 28
+	}
+}
+
+printAuthorInfo(post.author);
+```
+
+- 원본 타입이 추가되거나 수정되어도 별도로 수정해주지 않아도 된다.
+- ⚠ **주의할 점)** 인덱스 `[]` 에는 **값(예를 들어 변수)이 아니라 타입(예를 들어 스트링 리터럴 타입)**이 온다.
+- 중첩으로 인덱스 `[]` 를 사용해서 객체 안에 있는 특정 값을 가져올 수 있다.
+    - `Post[”author”][”id”]`
+
+### 배열
+
+```tsx
+type PostList = {
+	title: string;
+	content: string;
+	author: {
+		id:number;
+		name: string;
+		age: number;
+	}
+}[];
+
+function printAuthorInfo(author : PostList[number]["author"]){
+	console.log(`${author.name}-${author.id}`);
+}
+
+const post: PostList[number] = {
+	title: "게시글 제목",
+	content: "게시글 본문",
+	author: {
+		id:1,
+		name: "안수진",
+		age: 28
+	}
+}
+```
+
+- `[]`  안에 number 타입을 넣어주는 것은 **배열 타입으로부터 하나의 요소의 타입만 가져온다**는 것을 의미한다.
+    - `[number]` 말고 `[0]` 처럼 숫자를 넣어도 된다.
+
+### 튜플
+
+```tsx
+type Tup = [number, string, boolean];
+
+type Tup0 = Tup[0];  {/* number  */}
+ 
+type Tup1 = Tup[1];  {/* string  */}
+
+type Tup2 = Tup[2];  {/* boolean  */}
+
+type Tup3 = Tup[3];  {/* type error */}
+
+type TupNum = Tup[number]; {/* number | string | boolean */}
+```
+
+<br />
+
+## keyof 연산자
+
+- 특정 **객체 타입**으로부터 **프로퍼티 키**들을 모두 스트링 리터럴 유니온 타입으로 추출하는 연산자
+
+```tsx
+interface Person {
+	name: string;
+	age: number;
+}
+
+function getPropertyKey(person: Person, key: keyof Person){
+	return person[key]
+}
+
+const person: Person = {
+	name: "안수진",
+	age: 28,
+}
+
+getPropertyKey(person, "name") // 안수진
+```
+
+- 객체 프로퍼티의 키가 아무리 많고, 수정 또는 추가가 되어도 keyof  연산자를 사용하면 객체 프로퍼티의 키들만 유니온 타입으로 모두 가져올 수 있다.
+- ⚠ **주의할 점)** keyof 연산자는 무조건 **타입에만** 사용할 수 있는 연산자이다.
+    - `keyof person` 은 사용할 수 없다
+- keyof 연산자는 typeof 연산자와 함께 사용할 수 있다.
+    - 타입스크립트에서 typeof를 사용하면 변수의 타입을 추론해준다.
+        
+        ```tsx
+        type Person = typeof person
+        
+        function getPropertyKey(person: Person, key: keyof Person ){
+        	return person[key]
+        }
+        
+        const person = {
+        	name: "안수진",
+        	age: 28,
+        }
+        
+        getPropertyKey(person, "name") // 안수진
+        ```
+        
+<br />
+
+## 맵드 타입
+
+- 기존 **객체 타입**으로부터 새로운 타입을 만드는 타입
+
+```tsx
+interface User {
+	id: number;
+	name: string;
+	age: number;
+}
+
+// 1. 선택적 프로퍼티 설정
+type PartialUser = {
+	[key in "id" | "name" | "age"]?: User[key];
+	// TIP) keyof 연산자 활용 예시
+  // [key in keyof User]?: User[key];
+}
+
+// 2. 불리언 프로퍼티 설정
+type BooleanUser = {
+	[key in keyof User] : boolean;
+}
+
+// 3. readonly 프로퍼티 설정 (수정 불가능)
+type ReadonlyUser = {
+	readonly [key in keyof User] : User[key];
+}
+
+// 한명의 유저 정보를 불러오는 기능
+function fetchUser(): User {
+	// ... 기능
+	
+	return {
+		id: 1,
+		name: "안수진",
+		age: 28,
+	};
+}
+
+// 한명의 유저 정보를 수정하는 기능
+function updateUser(user: PartialUser) {
+	// ... 수정하는 기능
+}
+
+updateUser({age: 29})
+```
+
+- ⚠ **주의할 점)** 맵드 타입은 인터페이스에서는 만들 수 없고 **타입 별칭을 사용해야한다.**
+- 맵드 타입의 기본 문법
+    
+    ```tsx
+    [key in "id" | "name" | "age"] : User[key];
+    ```
+    
+    - 왼쪽에는 key 가 오고 오른쪽은 value 값이 온다.
+    - key 값으로 id, name, age 가 올 수 있다는 것을 의미한다. (유니온 타입)
+    - value 값은 **인덱스드 엑세스드 타입**과 같이 처리된다.
+        
+        ```tsx
+        // key 가 "id" 일 때
+        User["id"] // number
+        
+        // key 가 "name" 일 때
+        User["name"] // string
+        
+        // key 가 "age" 일 때
+        User["age"] // number
+        ```
+        
+    - 모든 프로퍼티를 선택적 프로퍼티로 설정하고 싶으면 key 값 끝에 `?`  만 붙여주면 된다.
+        
+        ```tsx
+        [key in "id" | "name" | "age"]? : User[key];
+        ```
+<br />
+
+## 템플릿 리터럴 타입
+
+- **스트링 리터럴 타입**을 기반으로 정해진 문자열만 포함하는 타입
+- 만들고 싶은 조합을 모두 만들 수 있다.
+
+```tsx
+type Color = "red" | "black" | "green";
+
+type Animal = "dog" | "cat" | "chicken";
+
+// ASIS
+type ColoredAnimal = "red-dog" | "red-cat" | "red-chicken" | "black-dog" ....
+
+// TOBE
+type ColoredAnimal = `${Color}-${Animal}`;
+
+const coloredAnimal: ColoredAnimal2 = "green-cat";
+```
+
+- ASIS 와 같이 하나하나 만들게 되면 수정 또는 추가 될 때마다 작업해줘야하기 때문에 비효율적이다.
+- TOBE와 같은 템플릭 리터럴 타입을 사용하게 되면 만들고 싶은 조합을 모두 알아서 자동으로 들어주기 때문에 편리하다.
+
 
 
 
