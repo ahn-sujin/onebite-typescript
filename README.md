@@ -36,6 +36,9 @@
 32. [keyof 연산자](#keyof-연산자)
 33. [맵드 타입](#맵드-타입)
 34. [템플릿 리터럴 타입](#템플릿-리터럴-타입)
+35. [조건부 타입 소개](#조건부-타입-소개)
+36. [분산적인 조건부 타입](#분산적인-조건부-타입)
+37. [infer - 조건부 타입 내에서 타입 추론하기](#infer-조건부-타입-내에서-타입-추론하기)
 
 <br />
 
@@ -2474,7 +2477,280 @@ const coloredAnimal: ColoredAnimal2 = "green-cat";
 - ASIS 와 같이 하나하나 만들게 되면 수정 또는 추가 될 때마다 작업해줘야하기 때문에 비효율적이다.
 - TOBE와 같은 템플릭 리터럴 타입을 사용하게 되면 만들고 싶은 조합을 모두 알아서 자동으로 들어주기 때문에 편리하다.
 
+<br />
 
+## 조건부 타입 소개
 
+- 조건에 따라서(삼항연산자를 사용) 타입을 결정하는 문법
+    
+```tsx
+ type A = number extends string ? string : number;
+```
+- number는 string의 서브 타입이 아니기 때문에 위 조건은 거짓이 되어 A타입은 number가 된다.
+- `A extends B` 일 때, A타입이 B타입의 서브 타입인지를 확인해야 한다.
+
+  
+```tsx
+type ObjA = {
+   a: number;
+}
+ 
+type ObjB = {
+  a: number;
+  b: number;
+}
+    
+type B = ObjB extends ObjA ? number : string; // type B = number
+```
+
+<br />
+
+### 제네릭과 조건부 타입
+
+```tsx
+type StringNumberSwitch<T> = T extends number ?  string : number;
+
+let varA : StringNumberSwitch<number> // string
+
+let varB : StringNumberSwitch<string> // number
+```
+
+- 타입변수`<T>`  에 number 타입이 할당되면 string 타입을 반환하고 그렇지 않으면 number 타입을 반환한다.
+
+<br />
+
+```tsx
+// ASIS 공백을 제거하는 함수
+function removeSpaces1(text: string | null | undefined){
+    // 타입 좁히기
+    if(typeof text === "string"){
+        return text.replaceAll(" " , "");
+    } else {
+        return undefined;
+    }
+}
+
+let result = removeSpaces1("hi im sujin"); 
+// result.toUpperCase(); // result가 undefined가 될 수 있기 때문에 error 발생
+```
+
+- 위 코드에서 result가 undefined가 될 수 있기 때문에 타입에러가 발생한다.
+
+<br />
+
+```tsx
+// 1단계
+function removeSpaces<T>(text: T): T extends string ? string : undefined {
+  if (typeof text === "string") {
+    return text.replaceAll(" ", ""); // ❌
+  } else {
+    return undefined; // ❌
+  }
+} 
+```
+
+- 타입변수 T를 투가하고 매개변수 타입을 T로 정의한 다음 반환값의 타입을 `T extends string ? string : undefined` 으로 수정한다.
+- 하지만, 조건부 타입의 결과를 함수 내부에서 알 수 없기 때문에 타입 오류가 발생하기 때문에  타입 단언을 이용해서 반환값의 타입을 any로 단업하면 오류가 사라진다.
+
+<br />
+    
+```tsx
+// 2단계
+function removeSpaces<T>(text: T): T extends string ? string : undefined {
+  if (typeof text === "string") {
+    return text.replaceAll(" ", "") as any;
+  } else {
+    return undefined as any;
+  }
+}
+
+let result = removeSpaces("hi im sujin");
+// string
+    
+let result2 = removeSpaces(undefined);
+// undefined
+```    
+- 그런데 any 단언을 하게 되면 첫번째 return문에서 string이 아닌 타입의 값을 반환해도 오류를 감지못하는 문제가 발생할 수 있다.
+
+<br />
+
+```tsx
+// 3단계
+function removeSpaces<T>(text: T): T extends string ? string : undefined;
+function removeSpaces(text: any) {
+  if (typeof text === "string") {
+    return text.replaceAll(" ", "");
+  } else {
+    return undefined;
+  }
+}
+
+let result = removeSpaces("hi im sujin");
+// string
+
+let result2 = removeSpaces(undefined);
+// undefined
+```
+
+- **함수 오버로딩**을 사용하면 문제를 해결 할 수 있다. **오버로드 시그니처의 조건부 타입**은 구현 시그니처 내부에서 추론이 가능하기 때문에 타입 오류를 수정할 수 있다.
+
+<br />
+
+## 분산적인 조건부 타입
+
+- 조건부 타입이 분산적으로 동작하게 업그레이드 되는 것
+
+```tsx
+type StringNumberSwitch<T> = T extends number ?  string : number;
+
+let c : StringNumberSwitch<number | string>;
+// StringNumberSwitch<number> | 
+// StringNumberSwitch<string>
+
+let d : StringNumberSwitch<boolean | number | string>;
+// 1단계
+// StringNumberSwitch<boolean> | 
+// StringNumberSwitch<number> | 
+// StringNumberSwitch<string> 
+
+// 2단계
+// number | string | number
+
+// 결과
+// nummber | string
+```
+
+- 조건부 타입 타입변수에 유니온 타입을 할당하면 일반적인 조건부 타입이 아닌 분산적인 조건부 타입이 된다.
+    - 한번은 number, 한번은 string 으로 각각 한번씩 들어가게 된다.
+    - 각각에 대한 결과는 유니온 타입으로 묶이게 된다.
+
+<br />
+
+```tsx
+type Exclude<T,U> = T extends U ? never : T;
+
+type A = Exclude<number | string | boolean, string>;
+// 1단계
+// Exclude<number, string> |
+// Exclude<string, string> |
+// Exclude<boolean, string> 
+
+// 2단계
+// number | 
+// never |
+// boolean
+
+// 결과
+// number | boolean
+```
+
+- exclude : `U` 에 해당하는 **타입을 제거**
+- 유니온 타입에 `never`  가 포함되어 있다면 `never`는 사라지게 된다.
+    - 유니온 타입은 합집합을 의미하고 never 는 공집합이기 나타나기 때문에 never가 유니온 타입안에 있는게 결국 의미가 없기 때문이다.
+- 결과적으로 특정 유니온 타입으로부터 특정 타입만을 제거한 결과를 얻을 수 있다.
+
+<br />
+
+```tsx
+type Extract<T,U> =  T extends U ? T : never;
+
+type B = Extract<number | string | boolean, string>;
+// 1단계
+// Extract<number,string>
+// Extract<string,string>
+// Extract<booelan,string>
+
+// 2단계
+// never |
+// string |
+// never
+
+// 3단계
+// string
+```
+
+- extends: `U` 에 해당하는 **타입만 뽑아냄**
+
+<br />
+
+```tsx
+type StringNumberSwitch<T> = [T] extends [number] ?  string : number;
+
+let d:StringNumberSwitch<boolean | number | string>;
+// let d : number 
+```
+
+- 분산적인 조건부 타입이 되지 않도록 막고 싶다면 extends 양옆에 대괄호 `[ ]` 를 씌워주면 된다.
+    - 유니온 타입으로 전달해도 분산이 되지 않는다.
+
+<br />
+
+## infer - 조건부 타입 내에서 타입 추론하기
+
+- infer는 조건부 타입 내에서 특정 타입만 추론할 수 있는 기능이다.
+    - infer는 inference 의 약자로 `추론하다`  라는 의미를 갖고 있다.
+ 
+```tsx
+type FuncA = () => string;
+
+type FuncB = () => number;
+
+type ReturnType<T> = T extends () => string ? string : never;
+
+type A = ReturnType<FuncA>;
+// type A : string
+
+type B = ReturnType<FuncB>;
+// type B : never
+```
+
+- 위의 조건부 타입 예제에서는  `() ⇒ string`  으로 값을 박아놓았기 때문에 반환값이 string 인 것 밖에 구분을 하지 못한다.
+
+<br />
+
+```tsx
+type FuncA = () => string;
+
+type FuncB = () => number;
+
+type ReturnType<T> = T extends () => infer R ? R : never;
+
+type A = ReturnType<FuncA>;
+// type A : string
+
+type B = ReturnType<FuncB>;
+// type B : number
+```
+
+- `infer R`
+    - `R` 이라는 변수를 선언한 것이라고 생각하면 된다.
+    - 앞에오는 **조건식을 참으로 만들 수 있는 값으로 `R`을 추론**한다.
+ 
+<br />
+
+```tsx
+type ReturnType<T> = T extends () => infer R ? R : never;
+
+type C = ReturnType<number>;
+// type C : never
+```
+
+- `R`의 타입 **추론이 불가능할 때는 조건식의 거짓으로 판단**하게 된다.
+
+<br />
+
+```tsx
+type PromiseUnpack<T> = T extends Promise<infer R> ? R : never;
+
+type PromiseA = PromiseUnpack<Promise<number>>;
+// number
+
+type PromiseB = PromiseUnpack<Promise<string>>;
+// string
+```
+
+- 요구사항
+    1. T는 프로미스 타입어야한다.
+    2. 프로미스 타입의 결과값 타입을 반환해야 한다.
 
  
