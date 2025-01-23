@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ES5",
+    "module": "CommonJS",
+    "strict": true,
+    "allowJs": true,
+    "esModuleInterop": true, // default로 내보내기
+    "jsx": "react-jsx" // 타입스크립트에서 jsx 해석
+  },
+  "include": ["src"]
+}
