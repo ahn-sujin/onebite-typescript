@@ -39,6 +39,10 @@
 35. [조건부 타입 소개](#조건부-타입-소개)
 36. [분산적인 조건부 타입](#분산적인-조건부-타입)
 37. [infer - 조건부 타입 내에서 타입 추론하기](#infer---조건부-타입-내에서-타입-추론하기)
+38. [유틸리티 타입 소개](#유틸리티-타입-소개)
+39. [맵드 타입 기반의 유틸리티 타입1 - Partial, Required, Readonly](#맵드-타입-기반의-유틸리티-타입1---Partial-Required-Readonly)
+40. [맵드 타입 기반의 유틸리티 타입2 - Pick, Omit, Record](#맵드-타입-기반의-유틸리티-타입2---Pick-Omit,-Record)
+41. [조건부 타입 기반의 유틸리티 타입 - Exclude, Extract, Return Type](#조건부-타입-기반의-유틸리티-타입---Exclude-Extract-Return-Type)
 
 <br />
 
@@ -2752,5 +2756,428 @@ type PromiseB = PromiseUnpack<Promise<string>>;
 - 요구사항
     1. T는 프로미스 타입어야한다.
     2. 프로미스 타입의 결과값 타입을 반환해야 한다.
+
+<br />
+
+## 유틸리티 타입 소개
+- 타입스크립트가 자체적으로 제공하는 타입들을 말한다.
+- 제너릭, 맵드 타입, 조건부 타입 등의 타입 조작 기능을 이용해 **실무에서 자주 사용되는 타입을 미리 만들어** 놓을 수 있다.
+
+<br />
+
+## 맵드 타입 기반의 유틸리티 타입1 - Partial, Required, Readonly
+
+### Partial<T>
+
+- partial은 부분적인 , 일반적의 라는 의미를 갖는다.
+- 특정 객체 타입의 모든 프로퍼티를 **선택적 프로퍼티로 바꿔주는 타입**이다.
+
+```tsx
+// 임시 저장 게시글
+
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+const draft:Partial<Post> = {
+	title:"임시 제목",
+	cotent:"작성중입니다..."
+}
+```
+
+- Partial<T> 타입은 타입 변수 T로 전달한 객체 타입의 모든 프로퍼티를 다 선택적 프로퍼티로 변환한다.
+    - 따라서,  `Partial<Post>`  타입은 모든 프로퍼티가 선택적 프로퍼티가 된 Post 타입이 된다.
+ 
+<br />
+
+```tsx
+// 임시 저장 게시글
+
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+// Partial 직접 구현
+type Partial<T> = {
+	[key in keyof T]? : T[key];
+}
+
+const draft:Partial<Post> = {
+	title:"임시 제목",
+	content:"작성중입니다..."
+}
+```
+
+- `type Partial<T>`
+    - 기본 객체 타입을 다른 타입으로 변환시켜주는 **맵드 타입**을 사용해서 구현한다.
+
+
+### Required<T>
+
+- Required 는 “필수의, 필수적인” 이라는 뜻을 갖고 있다.
+- 특정 개체 타입의 모든 프로퍼티를 필수 프로퍼티로 바꿔주는 타입이다.
+
+```tsx
+// 썸네일이 필수로 들어가야하는 게시글
+
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+const withThumbnailPost : Required<Post> = { // ❌
+	title: "삿포로 여행 후기",
+	tags: ["travel"],
+	content: "",
+	// thumbnailURL: "https:// ....",  
+}
+```
+
+- `Required<Post>` 는 Post 타입의 모든 프로퍼티가 필수 프로퍼티로 변환된 객체 타입이다.
+    - 따라서, thumbnailURL 프로퍼티가 없으면 오류가 발생하게 된다.
+
+<br />
+
+```tsx
+// 썸네일이 필수로 들어가야하는 게시글
+
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+// Required 직접 구현
+type Requied<T> = {
+	[key in keyof T]-? : T[key];
+}
+
+const draft:Partial<Post> = { // ❌
+	title: "삿포로 여행 후기",
+	tags: ["travel"],
+	content: "",
+	// thumbnailURL: "https:// ....",  
+}
+```
+
+- 물음표 `?` 앞에 마이너스 `-`   를 붙인 `-?` 가 오게 되면 `?` 를 제거하라는 의미가 되어 모든 프로퍼티가 필 수 프로퍼티가 된다.
+
+### Readonly<T>
+
+- Readonly는 읽기 전용, 수정 불가의 의미를 갖인다.
+- 특정 객체 타입에서 모든 프로퍼티를 **읽기 전용 프로퍼티로 만들어 주는 타입**이다.
+
+```tsx
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+const readonlyPost: Readonly<Post> = {
+	title: "보호된 게시글 입니다.",
+	tags: [],
+	content: "",
+	thumbnailURL: "https:// ....",
+}
+
+readonlyPost.content = "수정할래요" , // ❌
+```
+
+- 모든 프로퍼티를 readonly(읽기 전용) 프로퍼티로 변환한다.
+    - 따라서, 점 표기법(`readonlyPost.content`)을 이용해 값을 수정하려고 하면 오류가 발생한다.
+
+<br />
+
+```tsx
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+// Readonly 직접 구현
+type Readonly<T> = {
+	readonly [key in keyof T] : T[key];
+}
+
+const readonlyPost: Readonly<Post> = {
+	title: "보호된 게시글 입니다.",
+	tags: [],
+	conetent: "",
+	thumbnailURL: "https:// ....",
+}
+
+readonlyPost.content = "수정할래요" , // ❌
+```
+
+<br />
+
+## 맵드 타입 기반의 유틸리티 타입2 - Pick, Omit, Record
+
+### Pick<T, K>
+
+- pick은 “뽑다, 고르다” 라는 뜻을 갖고 있다.
+- **객체 타입**으로부터 **특정 프로퍼티만 골라내는** 타입이다.
+
+```tsx
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+const legacyPost : Pick<Post, “title” | “content”> = {
+	title:"옛날 글",
+	conetent: "옛날 컨텐츠"
+}
+```
+
+- 옛날 게시글 `legacyPost` 에는 tags, thumbnailURL 프로퍼티에 대한 값이 없다고 가정했을 때 기존 Post 타입을 가져다 쓰면 오류가 발생한다.
+    - 따라서, `Pick<Post, “title” | “content”>`  타입을 통해서 필요한 프로퍼티만 뽑아서 가져올 수 있도록 한다.
+
+<br />
+
+```tsx
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+// Pick 직접 구현
+type Pick<T, K extends keyof T>  = {
+	// K extends "title" | "tags" | "content" | "thumbnailURL"
+	// “title” | “content” extends "title" | "tags" | "content" | "thumbnailURL"
+	[key in K] : T[key] 
+}
+
+const legacyPost: Pick<Post, “title” | “content”>   = {
+	title:"옛날 글",
+	conetent: "옛날 컨텐츠"
+}
+```
+
+- **`K` 가 `T` 의 key로만 이루어진 스트링 리터럴 유니온 타입임을 보장** 해 주어야하기 때문에 타입 제한이 필요하다.
+    - 따라서, `Pick<T, K extends keyof T>` 와 같이 K 의 타입을 제한해준다.
+
+### Omit<T, K>
+
+- omit 은 “생략하다, 빼다” 라는 뜻을 갖고 있다.
+- 객체 타입으로부터 특정 프로퍼티를 제거하는 타입이다.
+
+```tsx
+// 제목이 없는 게시글
+
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+const noTitlePost: Omit<Post, "title"> = {
+	content: "",
+	tags: [],
+	thumbnailURL: "",
+}
+```
+
+- Omit 타입은 Pick 타입과 반대되는 타입으로 `Omit<Post, "title">` 와 같이 타입을 지정했을 때 `Post` 타입으로부터 “title” 프로퍼티만 제거한 타입을 만든다.
+
+<br />
+
+```tsx
+interface Post {
+	title: string;
+	tags: string[];
+	content: string;
+	thumbnailURL? : string;
+}
+
+// Omit 직접 구현
+type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T,K>;
+
+const noTitlePost: Omit<Post, "title"> = {
+	content: "",
+	tags: [],
+	thumbnailURL: "",
+}
+```
+
+- `type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T,K>`
+    1. T = Post, K = “title”
+    2. Pick<Post, Exclude<keyof Post, “title”>
+    3. Pick<Post, Exclude<”title” | “tag” | “content” | “thumbnailURL” , “title”>
+    4. Pick<Post, “tag”, “content”, “thumbnailURL”>
+    5.  “tag” | “content” | “thumbnailURL”
+
+<br />
+
+### ⭐️ Record<K, V>
+
+- 객체 타입을 새롭게 정의할 때 인덱스 시그니처 보다는 제한적인 타입을 정의할 때 사용한다.
+    - 동일한 패턴을 갖는 객체 타입을 쉽게 정의할 수 있다.
+- **실무에서 자주 사용된다.**
+
+```tsx
+type Thumbnail = {
+	large: {
+		url: string;
+	};
+	medium: {
+		url: string;
+	};
+	small: {
+		url: string;
+	};
+}
+```
+
+- 모든 타입에 같은 코드 `url: string;` 가 반복되고 있을 때 사용할 수 있다.
+
+<br />
+
+```tsx
+type Thumbnail = Record<"large" | "medium" | "small", {url: string}>;
+```
+
+- Record는 객체 타입을 만들어 주는 유틸리티 타입이다.
+    - **첫번째 타입 변수 `K`** 에는 객체 프로퍼티 key를 유니온 타입(`"large" | "medium" | "small"`)으로 받고,
+    - **두번째 타입 변수 `V`** 에는 key들의 value 타입(`{url: string}`)을 받는다.
+ 
+<br />
+
+```tsx
+type Record<K extends keyof any, V> = {
+	[key in K] : V;
+}
+
+type Thumbnail = Record<"large" | "medium" | "small", {url: string}>;
+```
+
+- `K extends keyof any`  는 어떤 객체일지는 모르겠지만, K는 객체의 key 타입이라는 것을 정의하고 K의 타입에 대해서 제한해주는 것을 의미한다.
+
+<br  />
+
+## 조건부 타입 기반의 유틸리티 타입 - Exclude, Extract, Return Type
+
+### Exclude<T,U>
+
+- 제외하다, 추방하다.
+- **T 에서 U를 제거**하는 타입
+
+```tsx
+type A = Exclude<string | boolean, boolean>;
+//string
+```
+
+```tsx
+type Exclude<T, U> = T extends U ? never : T;
+
+type A = Exclude<string | boolean, boolean>;
+// string
+```
+
+- 1단계
+    - Exclude<string, boolean> |  Exclude<boolean, boolean>
+- 2단계
+    - string |  never
+- 결과
+    - string
+
+### Extract<T,U>
+
+- exclude 타입의 반대
+- **T 에서 U를 추출**하는 타입
+
+```tsx
+type B = Extract<string | boolean, boolean>;
+// boolean
+```
+
+```tsx
+type Extract<T, U> = T extends U ? T : never;
+
+type B = Extract<string | boolean, boolean>;
+// boolean
+```
+
+- 1단계
+    - Extract<string, boolean> | Extract<boolean, boolean>
+- 2단계
+    - nerver | boolean
+- 결과
+    - boolean
+
+### RetrunType<T>
+
+- **함수의 반환값 타입**을 추출하는 타입
+- infer 타입
+
+```tsx
+function funcA() {
+	return "hello";
+}
+
+function funcB() {
+	return 10;
+}
+
+type ReturnA = ReturnType<typeof funcA>; // string
+type ReturnB = ReturnType<typeof funcB>; // number
+```
+
+```tsx
+function funcA() {
+	return "hello";
+}
+
+function funcB() {
+	return 10;
+}
+
+type ReturnType<T extends (...arg: any) => any> = T extends (
+  ...arg: any
+) => infer R
+  ? R
+  : never;
+
+type ReturnA = ReturnType<typeof funcA>; // string
+type ReturnB = ReturnType<typeof funcB>; // number
+```
+
+- `T extends (...arg: any) => infer R ?  R : never`
+    - funcA 가 들어 간다고 했을 때,
+        1. () ⇒ string extends  string ? string : never
+        2. 결과 : string
+    - func B 가 들어간다고 했을 때,
+        1. () ⇒ number extends  number ? number : never
+        2. 결과: number
+
+
+
+
+
+
+
+
+
+
+
+
 
  
